@@ -1,29 +1,28 @@
-import {
-	env,
-	createExecutionContext,
-	waitOnExecutionContext,
-	SELF,
-} from "cloudflare:test";
-import { describe, it, expect } from "vitest";
-import worker from "../src/index";
+import { env, SELF } from "cloudflare:test";
+import { beforeAll, describe, expect, it } from "vitest";
 
-// For now, you'll need to do something like this to get a correctly-typed
-// `Request` to pass to `worker.fetch()`.
-const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
-
-describe("Hello World worker", () => {
-	it("responds with Hello World! (unit style)", async () => {
-		const request = new IncomingRequest("http://example.com");
-		// Create an empty context to pass to `worker.fetch()`.
-		const ctx = createExecutionContext();
-		const response = await worker.fetch(request, env, ctx);
-		// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
-		await waitOnExecutionContext(ctx);
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+describe("Campus Equipment Booking API", () => {
+	beforeAll(async () => {
+		await env.DB
+			.prepare("CREATE TABLE IF NOT EXISTS equipment (id TEXT PRIMARY KEY, name TEXT NOT NULL, location TEXT NOT NULL)")
+			.run();
+		await env.DB
+			.prepare(
+				"CREATE TABLE IF NOT EXISTS bookings (id TEXT PRIMARY KEY, equipmentId TEXT NOT NULL, borrowerName TEXT NOT NULL, startAt TEXT NOT NULL, endAt TEXT NOT NULL, purpose TEXT NOT NULL, FOREIGN KEY (equipmentId) REFERENCES equipment(id) ON DELETE RESTRICT)",
+			)
+			.run();
+		await env.DB
+			.prepare("INSERT OR IGNORE INTO equipment (id, name, location) VALUES ('eq-1', 'Projector A', 'Building 1'), ('eq-2', 'Camera A', 'Building 2')")
+			.run();
 	});
 
-	it("responds with Hello World! (integration style)", async () => {
-		const response = await SELF.fetch("https://example.com");
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+	it("returns the seeded equipment records", async () => {
+		const response = await SELF.fetch("https://example.com/api/equipment");
+
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual([
+			{ id: "eq-1", name: "Projector A", location: "Building 1" },
+			{ id: "eq-2", name: "Camera A", location: "Building 2" },
+		]);
 	});
 });
