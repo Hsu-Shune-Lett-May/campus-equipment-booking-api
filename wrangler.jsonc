@@ -15,7 +15,7 @@
 		{
 			"binding": "DB",
 			"database_name": "campus-equipment-booking",
-			"database_id": "00000000-0000-0000-0000-000000000001",
+			"database_id": "77a4e367-a791-48c8-8fef-b3fdf1cef951",
 			"migrations_dir": "migrations"
 		}
 	]
